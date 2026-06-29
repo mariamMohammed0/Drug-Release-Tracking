@@ -113,22 +113,44 @@ if __name__ == "__main__":
     print(f"Predicted Bound Drug (v):   {v_final:.4f}")
     print(f"Predicted Stress (sigma):   {s_final:.4f}")
 
+
+
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Re-create spatial coordinate array for the x-axis
 x_grid = np.linspace(xl, xu, nx)
+time_labels = [f't = {t:.1f}' for t in t_space.numpy()]
 
-plt.figure(figsize=(10, 6))
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+fig.suptitle('Neural ODE Solution: Drug Patch Dynamics Over Time', fontsize=13)
 
-# Loop through the 6 time snapshots stored in the solution tensor
-for idx, t_val in enumerate(t_space.numpy()):
-    # Extract just the 'u' vector (first 26 elements) for this specific time step
-    u_snapshot = solution[idx, :nx].numpy()
-    plt.plot(x_grid, u_snapshot, label=f'Time t = {t_val:.1f}', linewidth=2)
+# --- Unbound drug u ---
+ax = axes[0]
+for idx, label in enumerate(time_labels):
+    ax.plot(x_grid, solution[idx, :nx].numpy(), label=label, linewidth=2)
+ax.set_title('Free drug u(x,t)', fontsize=11)
+ax.set_xlabel('Position x')
+ax.set_ylabel('Concentration')
+ax.grid(True, linestyle=':', alpha=0.6)
+ax.legend(fontsize=8)
 
-plt.title('Neural ODE Solution: Unbound Drug Depletion Over Time', fontsize=12)
-plt.xlabel('Position across Patch (x)', fontsize=10)
-plt.ylabel('Unbound Drug Concentration (u)', fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.6)
-plt.legend()
+# --- Bound drug v ---
+ax = axes[1]
+for idx, label in enumerate(time_labels):
+    ax.plot(x_grid, solution[idx, nx:2*nx].numpy(), label=label, linewidth=2)
+ax.set_title('Bound drug v(x,t)', fontsize=11)
+ax.set_xlabel('Position x')
+ax.grid(True, linestyle=':', alpha=0.6)
+ax.legend(fontsize=8)
+
+# --- Polymer stress sigma ---
+ax = axes[2]
+for idx, label in enumerate(time_labels):
+    ax.plot(x_grid, solution[idx, 2*nx:].numpy(), label=label, linewidth=2)
+ax.set_title('Polymer stress σ(x,t)', fontsize=11)
+ax.set_xlabel('Position x')
+ax.grid(True, linestyle=':', alpha=0.6)
+ax.legend(fontsize=8)
+
+plt.tight_layout()
 plt.show()
