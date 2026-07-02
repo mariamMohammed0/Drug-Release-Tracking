@@ -130,24 +130,57 @@ if __name__ == "__main__":
     print(f"Predicted Stress (sigma):   {s_pred.item():.4f}")
 
 import matplotlib.pyplot as plt
+import torch
+import numpy as np
 
-# Generate a smooth test grid across space at t = 2.0
-x_test = torch.linspace(xl, xu, 100).view(-1, 1)
-t_test = torch.full_like(x_test, 2.0)
+# Time snapshots to evaluate (matching the Neural ODE t_space)
+t_snapshots = [0.0, 0.4, 0.8, 1.2, 1.6, 2.0]
 
-# Get predictions from your trained PINN
-with torch.no_grad():
-    u_pred, v_pred, s_pred = model(x_test, t_test)
+# Spatial grid
+x_grid = torch.linspace(xl, xu, 100).view(-1, 1)
 
-# Plot the results
-plt.figure(figsize=(10, 5))
-plt.plot(x_test.numpy(), u_pred.numpy(), label='Unbound Drug (u)', color='blue', linewidth=2)
-plt.plot(x_test.numpy(), v_pred.numpy(), label='Bound Drug (v)', color='green', linewidth=2)
-plt.plot(x_test.numpy(), s_pred.numpy(), label='Polymer Stress (σ)', color='red', linestyle='--', linewidth=2)
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+fig.suptitle('PINN Solution: Drug Patch Dynamics Over Time', fontsize=13)
 
-plt.title('PINN Solution: Drug Distribution Across the Patch at t = 2.0', fontsize=12)
-plt.xlabel('Position across Patch (x)', fontsize=10)
-plt.ylabel('Concentration / Stress Scale', fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.6)
-plt.legend()
+u_all, v_all, s_all = [], [], []
+
+for t_val in t_snapshots:
+    t_grid = torch.full_like(x_grid, t_val)
+    with torch.no_grad():
+        u_pred, v_pred, s_pred = model(x_grid, t_grid)
+    u_all.append(u_pred.numpy())
+    v_all.append(v_pred.numpy())
+    s_all.append(s_pred.numpy())
+
+x_np = x_grid.numpy()
+
+# --- Unbound drug u ---
+ax = axes[0]
+for i, t_val in enumerate(t_snapshots):
+    ax.plot(x_np, u_all[i], label=f't = {t_val:.1f}', linewidth=2)
+ax.set_title('Free drug u(x,t)', fontsize=11)
+ax.set_xlabel('Position x')
+ax.set_ylabel('Concentration')
+ax.grid(True, linestyle=':', alpha=0.6)
+ax.legend(fontsize=8)
+
+# --- Bound drug v ---
+ax = axes[1]
+for i, t_val in enumerate(t_snapshots):
+    ax.plot(x_np, v_all[i], label=f't = {t_val:.1f}', linewidth=2)
+ax.set_title('Bound drug v(x,t)', fontsize=11)
+ax.set_xlabel('Position x')
+ax.grid(True, linestyle=':', alpha=0.6)
+ax.legend(fontsize=8)
+
+# --- Polymer stress sigma ---
+ax = axes[2]
+for i, t_val in enumerate(t_snapshots):
+    ax.plot(x_np, s_all[i], label=f't = {t_val:.1f}', linewidth=2)
+ax.set_title('Polymer stress σ(x,t)', fontsize=11)
+ax.set_xlabel('Position x')
+ax.grid(True, linestyle=':', alpha=0.6)
+ax.legend(fontsize=8)
+
+plt.tight_layout()
 plt.show()
